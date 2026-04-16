@@ -1,5 +1,5 @@
 const express = require("express");
-const puppeteer = require("puppeteer-core");
+const puppeteer = require("puppeteer");
 const cors = require("cors");
 
 const app = express();
@@ -19,8 +19,9 @@ app.get("/analyze", async (req, res) => {
 
     try {
         const browser = await puppeteer.launch({
-            headless: true,
-            args: ["--no-sandbox", "--disable-setuid-sandbox"]
+          headless: "new",
+          executablePath: puppeteer.executablePath(), // 🔥 automātiski atrod Chrome
+          args: ["--no-sandbox", "--disable-setuid-sandbox"]
         });
 
         const page = await browser.newPage();
