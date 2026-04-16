@@ -4,21 +4,27 @@ const cors = require("cors");
 
 const app = express();
 app.use(cors());
-app.use(express.static(__dirname)); // lai var redzÄ“t screenshot
+app.use(express.static(__dirname));
+
+// Test route
+app.get("/", (req, res) => {
+    res.send("Server is working 🚀");
+});
 
 app.get("/analyze", async (req, res) => {
     const url = req.query.url;
 
-    if (!url) return res.status(400).json({ error: "No URL" });
+    if (!url) return res.status(400).json({ error: "No URL provided" });
 
     const visited = new Set();
     const results = [];
 
     try {
         const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
-});
+            headless: true,
+            args: ["--no-sandbox", "--disable-setuid-sandbox"]
+        });
+
         const page = await browser.newPage();
 
         async function crawl(pageUrl, depth = 0) {
@@ -26,7 +32,10 @@ app.get("/analyze", async (req, res) => {
             visited.add(pageUrl);
 
             try {
-                await page.goto(pageUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
+                await page.goto(pageUrl, {
+                    waitUntil: "domcontentloaded",
+                    timeout: 20000
+                });
 
                 const data = await page.evaluate(() => {
 
@@ -52,6 +61,7 @@ app.get("/analyze", async (req, res) => {
                     const elements = document.querySelectorAll("p,h1,h2,h3,span");
 
                     return Array.from(elements).map(el => {
+
                         const style = getComputedStyle(el);
 
                         let text = el.innerText || el.textContent || "";
@@ -71,7 +81,7 @@ app.get("/analyze", async (req, res) => {
                         if (fontSize < 14 || contrastValue < 4.5 || lineHeight < 1.3) {
                             bad = true;
 
-                            // š” Highlight
+                            // Highlight
                             el.style.outline = "3px solid red";
                             el.style.backgroundColor = "rgba(255,0,0,0.1)";
                         }
@@ -86,7 +96,6 @@ app.get("/analyze", async (req, res) => {
                             bad
                         };
                     });
-
                 });
 
                 results.push({
@@ -100,6 +109,7 @@ app.get("/analyze", async (req, res) => {
                     fullPage: true
                 });
 
+                // Crawl vēl lapas
                 const links = await page.evaluate(() =>
                     Array.from(document.querySelectorAll("a"))
                         .map(a => a.href)
@@ -116,7 +126,6 @@ app.get("/analyze", async (req, res) => {
         }
 
         await crawl(url);
-
         await browser.close();
 
         res.json({ pages: results });
