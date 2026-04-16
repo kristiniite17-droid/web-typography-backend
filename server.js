@@ -1,17 +1,15 @@
 const express = require("express");
-const puppeteer = require("puppeteer-core");
+const puppeteer = require("puppeteer");
 const cors = require("cors");
 
 const app = express();
 app.use(cors());
 app.use(express.static(__dirname));
 
-// TEST
 app.get("/", (req, res) => {
     res.send("Server is working 🚀");
 });
 
-// ANALYZE
 app.get("/analyze", async (req, res) => {
     const url = req.query.url;
 
@@ -19,26 +17,16 @@ app.get("/analyze", async (req, res) => {
         return res.status(400).json({ error: "No URL provided" });
     }
 
-    let browser;
-
     try {
-        browser = await puppeteer.launch({
-            headless: true,
-            executablePath: process.env.CHROME_PATH || undefined,
+        const browser = await puppeteer.launch({
+            headless: "new",
             args: ["--no-sandbox", "--disable-setuid-sandbox"]
         });
 
-    } catch (err) {
-        return res.status(500).json({
-            error: "Browser failed to start. Chrome not found on server."
-        });
-    }
-
-    try {
         const page = await browser.newPage();
 
         await page.goto(url, {
-            waitUntil: "domcontentloaded",
+            waitUntil: "networkidle2",
             timeout: 30000
         });
 
@@ -57,17 +45,17 @@ app.get("/analyze", async (req, res) => {
                     tag: el.tagName,
                     text,
                     fontSize: style.fontSize,
-                    lineHeight: style.lineHeight
+                    lineHeight: style.lineHeight,
+                    fontFamily: style.fontFamily
                 };
             });
         });
 
         await browser.close();
 
-        res.json({ elements: data.slice(0, 20) });
+        res.json({ elements: data.slice(0, 30) });
 
     } catch (err) {
-        if (browser) await browser.close();
         res.status(500).json({ error: err.message });
     }
 });
