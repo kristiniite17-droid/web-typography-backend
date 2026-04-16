@@ -1,15 +1,17 @@
 const express = require("express");
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
 const cors = require("cors");
 
 const app = express();
 app.use(cors());
 app.use(express.static(__dirname));
 
+// TEST
 app.get("/", (req, res) => {
     res.send("Server is working 🚀");
 });
 
+// ANALYZE
 app.get("/analyze", async (req, res) => {
     const url = req.query.url;
 
@@ -17,13 +19,22 @@ app.get("/analyze", async (req, res) => {
         return res.status(400).json({ error: "No URL provided" });
     }
 
+    let browser;
+
     try {
-        const browser = await puppeteer.launch({
-          headless: "new",
-          executablePath: puppeteer.executablePath(), // 🔥 automātiski atrod Chrome
-          args: ["--no-sandbox", "--disable-setuid-sandbox"]
+        browser = await puppeteer.launch({
+            headless: true,
+            executablePath: process.env.CHROME_PATH || undefined,
+            args: ["--no-sandbox", "--disable-setuid-sandbox"]
         });
 
+    } catch (err) {
+        return res.status(500).json({
+            error: "Browser failed to start. Chrome not found on server."
+        });
+    }
+
+    try {
         const page = await browser.newPage();
 
         await page.goto(url, {
@@ -55,8 +66,9 @@ app.get("/analyze", async (req, res) => {
 
         res.json({ elements: data.slice(0, 20) });
 
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    } catch (err) {
+        if (browser) await browser.close();
+        res.status(500).json({ error: err.message });
     }
 });
 
