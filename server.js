@@ -6,12 +6,11 @@ const app = express();
 app.use(cors());
 app.use(express.static(__dirname));
 
-// TEST ROUTE
+// TEST
 app.get("/", (req, res) => {
     res.send("Server is working 🚀");
 });
 
-// ANALYZE ROUTE
 app.get("/analyze", async (req, res) => {
     const url = req.query.url;
 
@@ -20,8 +19,10 @@ app.get("/analyze", async (req, res) => {
     }
 
     try {
+        // 🔥 ŠIS IR GALVENAIS FIX
         const browser = await puppeteer.launch({
-            headless: true,
+            headless: "new",
+            executablePath: puppeteer.executablePath(), // ← AUTOMĀTISKI pareizais ceļš
             args: ["--no-sandbox", "--disable-setuid-sandbox"]
         });
 
@@ -75,7 +76,6 @@ app.get("/analyze", async (req, res) => {
 
                 if (fontSize < 14 || contrastValue < 4.5 || lineHeight < 1.3) {
                     bad = true;
-
                     el.style.outline = "3px solid red";
                     el.style.backgroundColor = "rgba(255,0,0,0.1)";
                 }
@@ -85,7 +85,6 @@ app.get("/analyze", async (req, res) => {
                     text,
                     fontSize: style.fontSize,
                     lineHeight: style.lineHeight,
-                    fontFamily: style.fontFamily,
                     contrast: contrastValue.toFixed(2),
                     bad
                 };
